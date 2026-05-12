@@ -14,7 +14,7 @@ class BudgetManager{
         $this->transactionManager = $transactionManager;
     }
 
-    public function setBudget(int $categoryId,float $amountLimit,string $period): int|false{
+    public function setBudget(int $categoryId,float $amountLimit,string $period): bool{
  
         return $this->wpdb->insert(
             $this->table,
@@ -23,10 +23,10 @@ class BudgetManager{
                 'amount_limit' => $amountLimit,
                 'period' => $period
             ]
-        );
+        )!== false;
     }
 
-    public function getBudgetByCategory(int $categoryId): array{
+    public function getBudgetByCategory(int $categoryId): ?object{
         
         return $this->wpdb->get_row(
 
@@ -38,23 +38,32 @@ class BudgetManager{
         );
     }
 
-    public function updateBudget(int $categoryId, float $newLimit): int|false{
+    public function updateBudget(int $budgetId, float $newLimit): int|false{
         return $this->wpdb->update(
             $this->table,
             [
                 'amount_limit' => $newLimit
             ],
             [
-                'category_id' => $categoryId
+                'id' => $budgetId
             ]
         );
+    }
+
+    public function deleteBudget(int $id) : bool {
+        return $this->wpdb->delete(
+            $this->table,
+            [
+                'id' => $id
+            ]
+        )!== false;
     }
     
     public function getRemainingBudget(int $categoryId):float{
         $budget = $this->getBudgetByCategory($categoryId);
         $spent = $this->transactionManager->calculateSpentByCategory($categoryId);
 
-        if(!$bugdet){
+        if(!$budget){
             return 0;
         }
 

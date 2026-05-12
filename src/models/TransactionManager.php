@@ -11,19 +11,47 @@ class TransactionManager{
         $this->table = $wpdb->prefix . 'fin_transactions';
     }
 
-    public function addTransaction(float $amount, int $categoryId, string $description): int|false{
+    public function addTransaction(float $amount, int $categoryId, string $description): bool{
         return $this->wpdb->insert(
             $this->table,
             [
                 'amount' => $amount,
-                'catergory_id' => $categoryId,
+                'category_id' => $categoryId,
                 'description' => $description
-            ]);
+            ]
+        )!== false;
+
     }
 
+    public function updateTransaction(int $transactionId, float $amount, string $description) : bool {
+
+        return $this->wpdb->update(
+            $this->table,
+            [
+                'amount' => $amount,
+                'description' => $description
+            ],
+            [
+                'id' => $transactionId
+            ]
+        );
+    }
+    
+
     public function getAllTransactions(): array{
-        return $this->wpdb->get_results(
-            "SELECT * FROM {$this->table}"
+    
+            $table_transactions = $this->table; 
+            $table_categories = $this->wpdb->prefix . 'fin_categories';
+
+            return $this->wpdb->get_results(
+            "SELECT
+                t.amount,
+                t.description,
+                t.transaction_date,
+                c.name as category_name
+            FROM $table_transactions t
+            LEFT JOIN $table_categories c ON t.category_id = c.id
+            ORDER BY t.transaction_date DESC"
         );
     }
     

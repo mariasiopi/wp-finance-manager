@@ -12,7 +12,7 @@ class CategoryManager{
         $this->table = $wpdb->prefix . 'fin_categories';
     }
 
-    public function addCategory( string $name,string $slug): int|false
+    public function addCategory( string $name,string $slug): bool
     {
         return $this->wpdb->insert(
             $this->table,
@@ -20,7 +20,7 @@ class CategoryManager{
                 'name' => $name,
                 'slug' => $slug
             ]
-        );
+        )!== false;
     }
 
     public function getAllCategories(): array
@@ -30,7 +30,7 @@ class CategoryManager{
         );
     }
 
-    public function getCategoryById(int $id): object|null{
+    public function getCategoryById(int $id): ?object{
 
         return $this->wpdb->get_row(
             $this->wpdb->prepare(
@@ -41,7 +41,7 @@ class CategoryManager{
         );
     }
 
-    public function updateCategory(int $id,string $name,string $slug): int|false{
+    public function updateCategory(int $id,string $name,string $slug): bool{
 
         return $this->wpdb->update(
             $this->table,
@@ -52,7 +52,7 @@ class CategoryManager{
             [
                 'id' => $id
             ]
-        );
+        )!== false;
     }
 
     public function deleteCategory(int $id): int|false{
