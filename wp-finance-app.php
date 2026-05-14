@@ -80,7 +80,8 @@ class FinancePluginInit{
     
         add_action('admin_menu', [$this, 'create_admin_pages']);
         add_action('rest_api_init', [$this, 'register_finance_routes']);
-    }
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
+        }
 
     public function create_admin_pages(): void{
         add_menu_page(
@@ -282,7 +283,7 @@ class FinancePluginInit{
         return new WP_REST_Response($data, 200);
     }
 
-    public function post_api_transactions($request): WP_REST_Response {
+    public function post_api_transactions(WP_REST_Request $request): WP_REST_Response {
         
         $params = $request->get_json_params(); 
 
@@ -304,7 +305,7 @@ class FinancePluginInit{
     
     }
 
-    public function update_api_transactions($request): WP_REST_Response {
+    public function update_api_transactions(WP_REST_Request $request): WP_REST_Response {
         $id = $request['id']; // Το ID από το URL
         $params = $request->get_json_params();
 
@@ -331,7 +332,7 @@ class FinancePluginInit{
         }
     }
 
-    public function post_api_categories($request): WP_REST_Response{
+    public function post_api_categories(WP_REST_Request $request): WP_REST_Response{
 
         $params = $request->get_json_params();
 
@@ -346,7 +347,7 @@ class FinancePluginInit{
         }
     }
     
-    public function update_api_categories($request): WP_REST_Response {
+    public function update_api_categories(WP_REST_Request $request): WP_REST_Response {
     
         $params = $request->get_json_params();
         $id = absint($params['id']);
@@ -361,7 +362,7 @@ class FinancePluginInit{
         }
     }
 
-    public function delete_api_categories($request): WP_REST_Response{
+    public function delete_api_categories(WP_REST_Request $request): WP_REST_Response{
 
         $params = $request->get_json_params();
         $id = absint($params['id']);
@@ -376,7 +377,7 @@ class FinancePluginInit{
 
     }
 
-    public function post_api_budgets($request): WP_REST_Response{
+    public function post_api_budgets(WP_REST_Request $request): WP_REST_Response{
 
         $params = $request->get_json_params();
 
@@ -397,7 +398,7 @@ class FinancePluginInit{
         }
     }
 
-    public function update_api_budgets($request): WP_REST_Response {
+    public function update_api_budgets(WP_REST_Request $request): WP_REST_Response {
        
         $params = $request->get_json_params();
 
@@ -413,7 +414,7 @@ class FinancePluginInit{
         }
     }
     
-    public function delete_api_budgets($request): WP_REST_Response{
+    public function delete_api_budgets(WP_REST_Request $request): WP_REST_Response{
 
         $params = $request->get_json_params();
         $id = absint($params['id']);
@@ -443,79 +444,10 @@ class FinancePluginInit{
 
         $categories = $this->categoryManager->getAllCategories();
 
-        //----------------------------HANDLERS-----------------------
-        if (isset($_POST['submit_category'])) {
-
-        //ελεγχος δικαιωμάτων
-            if (!current_user_can('manage_options')) {
-                wp_die('Σφάλμα: Δεν έχετε άδεια να καταχωρείτε συναλλαγές.');
-            }
-        //ελεγχος nonce
-            if(!isset($_POST['fin_category_nonce'])|| !wp_verify_nonce($_POST['fin_category_nonce'], 'fin_category_action')){
-                wp_die('Η ενέργεια δεν επιτρέπεται');
-            }
-        //sanitize
-            $name = sanitize_text_field($_POST['name']);
-        //save
-            $this->categoryManager->addCategory($name, sanitize_title($name));
-
-            echo '<div class="updated"><p>Η κατηγορία προστέθηκε</p></div>';
-        }
-
-        if (isset($_POST['submit_transaction'])){
-
-            if (!current_user_can('manage_options')) {
-                wp_die('Σφάλμα: Δεν έχετε άδεια να καταχωρείτε συναλλαγές.');
-            }
-
-            if(!isset($_POST['fin_transaction_nonce'])|| !wp_verify_nonce($_POST['fin_transaction_nonce'], 'fin_transaction_action')){
-                wp_die('Η ενέργεια δεν επιτρέπεται');
-            }
-
-            $amount = (float) $_POST['tr_amount'];
-
-            if ($amount <= 0) {
-                echo '<div class="error"><p>Το ποσό πρέπει να είναι θετικό!</p></div>';
-                return;
-            }
-
-            $amount = (float) $_POST['tr_amount'];
-            $categoryId = (int) absint($_POST['tr_category']);
-            $description = sanitize_textarea_field($_POST['tr_description']);
-
-            $this->transactionManager->addTransaction($amount, $categoryId, $description);
-            echo '<div class="updated"><p>Η συναλλαγή καταχωρήθηκε!</p></div>';
-        }
-
-        if (isset($_POST['submit_budget'])){
-            
-            if (!current_user_can('manage_options')) {
-                wp_die('Σφάλμα: Δεν έχετε άδεια να καταχωρείτε συναλλαγές.');
-            }
-
-            if(!isset($_POST['fin_budget_nonce'])|| !wp_verify_nonce($_POST['fin_budget_nonce'], 'fin_budget_action')){
-                wp_die('Η ενέργεια δεν επιτρέπεται');
-            }
-
-            
-             $limit = (float) $_POST['bg_limit'];
-
-             if($limit<0){
-                 echo '<div class="error"><p>Το ποσό πρέπει να είναι θετικό!</p></div>';
-                return;
-             }
-
-            $categoryId = (int) absint($_POST['bg_category']);
-           
-            $period = sanitize_text_field($_POST['bg_period']);
-
-            $this->budgetManager->setBudget($categoryId, $limit, $period);
-            echo '<div class="updated"><p>Ο προϋπολογισμός ορίστηκε!</p></div>';
-        }
-        //----------------------------------------------------
-
-
         //Δημιουργία dashboard
+
+        echo '<div class="finance-wrap">';
+        echo '<h1 class="finance-title">Finance Dashboard</h1>';
 
         $transactions = $this->transactionManager->getAllTransactions();
 
@@ -533,37 +465,17 @@ class FinancePluginInit{
         echo '</thead>';
         
         echo '<tbody>';
-    
-        if(empty($transactions)){
-            echo '<tr><td colspan="4">No transactions available</td></tr>';
-        }
-
-        foreach($transactions as $transaction){
-                echo '<tr>';
-                echo '<td>' . esc_html($transaction->amount) . '</td>';
-                echo '<td>' . esc_html($transaction->category_name) . '</td>';
-                echo '<td>' . esc_html($transaction->description) . '</td>';
-                echo '<td>' . esc_html($transaction->transaction_date) . '</td>';
-                echo '</tr>';
-        }
         
         echo '</tbody>';
 
         echo '</table>';
         echo '</div>';
 
-
-
-
-        echo '<div class="finance-wrap">';
-
-        echo '<h1 class="finance-title">Finance Dashboard</h1>';
-
         // CATEGORY CARD
         echo '<div class="finance-card">';
         echo '<h2>Προσθήκη κατηγορίας</h2>';
 
-        echo '<form method="POST" class="finance-form">';
+        echo '<form id="finance-category-form" method="POST" class="finance-form">';
              wp_nonce_field('fin_category_action', 'fin_category_nonce');
         echo '<input type="text" name="name" placeholder="Category name" required>';
         echo '<button type="submit" name="submit_category">Add Category</button>';
@@ -573,22 +485,23 @@ class FinancePluginInit{
 
         // TRANSACTION CARD
         echo '<div class="finance-card">';
-        echo '<h2>Προσθήκη συναλλαγής</h2>';
+            echo '<h2>Προσθήκη συναλλαγής</h2>';
 
-        echo '<form method="POST" class="finance-form">';
-                wp_nonce_field('fin_transaction_action', 'fin_transaction_nonce');
-        echo '<input type="number" step="0.01" name="tr_amount" placeholder="Amount" required>';
+            echo '<form id="finance-transaction-form" method="POST" class="finance-form">';
+                    wp_nonce_field('fin_transaction_action', 'fin_transaction_nonce');
 
-        echo '<select name="tr_category" required>';
-            foreach ($categories as $cat){
-                echo "<option value='" . esc_attr($cat->id) . "'>" . esc_html($cat->name) . "</option>";
-            }
-        echo '</select>';
+                echo '<input type="number" step="0.01" name="tr_amount" placeholder="Amount" required>';
 
-        echo '<textarea name="tr_description" placeholder="Description"></textarea>';
+                echo '<select name="tr_category" required>';
+                    foreach ($categories as $cat){
+                        echo "<option value='" . esc_attr($cat->id) . "'>" . esc_html($cat->name) . "</option>";
+                    }
+                echo '</select>';
 
-        echo '<button type="submit" name="submit_transaction">Add Transaction</button>';
-        echo '</form>';
+                echo '<textarea name="tr_description" placeholder="Description"></textarea>';
+
+                echo '<button type="submit" name="submit_transaction" id="submit-btn">Add Transaction</button>';
+            echo '</form>';
 
         echo '</div>';
 
@@ -597,7 +510,7 @@ class FinancePluginInit{
         
         echo '<h2>Προσθήκη ορίου συναλλαγών</h2>';
 
-        echo '<form method="POST" class="finance-form">';
+        echo '<form id="finance-budget-form" method="POST" class="finance-form">';
             wp_nonce_field('fin_budget_action', 'fin_budget_nonce');
 
         
@@ -619,6 +532,20 @@ class FinancePluginInit{
         echo '<button type="submit" name="submit_budget">Add Budget</button>';
         echo '</form></div>';
         echo '</div>';
+    }
+
+
+    public function enqueue_assets(): void{
+        wp_enqueue_script('finance-dashboard',
+            plugins_url('assets/js/dashboard.js', __FILE__),
+            ['jquery'],
+            '1.0.0',
+            true);
+
+        wp_localize_script('finance-dashboard', 'financeData', [
+            'restUrl' => esc_url_raw(rest_url('finance-app/v1')),
+            'nonce'   => wp_create_nonce('wp_rest')
+        ]);
     }
 }
 new FinancePluginInit();
