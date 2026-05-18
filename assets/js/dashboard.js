@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const t_form = document.getElementById('finance-transaction-form');
     const c_form = document.getElementById('finance-category-form');
     const b_form = document.getElementById('finance-budget-form');
+
+    let expensePieChart = null;
+    let cashFlowChart = null;
+
     loadTransactions();
 
     if (t_form) {
@@ -112,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (transactions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4">No transactions available</td></tr>';
+                renderCharts([]); //καθαρισμός charts
                 return;
             }
 
@@ -124,7 +129,98 @@ document.addEventListener('DOMContentLoaded', function() {
                 </tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
+
+            renderCharts(transactions);
         })
         .catch(error => console.error('Error loading transactions:', error));
+    }
+
+    function renderCharts(transactions){
+        if (transactions.length === 0) return;
+
+        const categoryTotals = {};
+        transactions.forEach( tr => {
+            const category = tr.category_name || 'Uncategorized';
+            const amount = parseFloat(tr.amount);
+
+            if (!categoryTotals[category]){
+                categoryTotals[category] = 0;
+            }
+            categoryTotals[category]+= amount
+        });
+
+        const pieLabels = Object.keys(categoryTotals);
+        const pieData = Object.values(categoryTotals);
+
+        const dateTotals = {};
+        transactions.forEach(tr => {
+            // Παίρνουμε μόνο την ημερομηνία (π.χ. "2024-03-15") αγνοώντας την ώρα
+            const dateOnly = tr.transaction_date.split(' ')[0]; 
+            const amount = parseFloat(tr.amount);
+
+            if (!dateTotals[dateOnly]) {
+                dateTotals[dateOnly] = 0;
+            }
+            dateTotals[dateOnly] += amount;
+        });
+
+        const sortedDates = Object.keys(dateTotals).sort();
+        const barData = sortedDates.map(date => dateTotals[date]);
+
+        const pieCtx = document.getElementById('expensePieChart');
+        if (pieCtx) {
+            // Αν υπάρχει ήδη γράφημα, το καταστρέφουμε πριν φτιάξουμε το νέο (για να μην "κολλάει" όταν ανανεώνεται)
+            if (expensePieChart) expensePieChart.destroy();
+            
+            expensePieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        label: 'Έξοδα ανά Κατηγορία',
+                        data: pieData,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        title: { display: true, text: 'Κατανομή Εξόδων' }
+                    }
+                }
+            });
+        }
+
+        const barCtx = document.getElementById('cashFlowChart');
+        if (barCtx) {
+            if (cashFlowChart) cashFlowChart.destroy();
+
+            cashFlowChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedDates,
+                    datasets: [{
+                        label: 'Ημερήσιες Συναλλαγές (€)',
+                        data: barData,
+                        backgroundColor: '#36A2EB',
+                        borderColor: '#2271b1',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Ιστορικό Cash Flow' }
+                    }
+                }
+            });
+        }
     }
 });

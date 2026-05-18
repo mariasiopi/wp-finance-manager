@@ -449,8 +449,33 @@ class FinancePluginInit{
         echo '<div class="finance-wrap">';
         echo '<h1 class="finance-title">Finance Dashboard</h1>';
 
-        $transactions = $this->transactionManager->getAllTransactions();
+        echo '<div class="finance-card" style="display: flex; justify-content: space-between; gap: 20px;">';
+            
+            // Container για το Pie Chart (Κατανομή Εξόδων)
+            echo '<div style="width: 48%;">';
+            echo '<canvas id="expensePieChart"></canvas>';
+            echo '</div>';
 
+            // Container για το Bar Chart (Ιστορικό Cash Flow)
+            echo '<div style="width: 48%;">';
+            echo '<canvas id="cashFlowChart"></canvas>';
+            echo '</div>';
+            
+        echo '</div>';
+
+        //--------Filters-------------------------------------------
+
+        echo '<form id="finance-filter-form" style="display: flex; gap: 10px; margin-bottom: 20px;">';
+        
+        echo '  <input type="date" id="filter-start" name="start_date">';
+        echo '  <input type="date" id="filter-end" name="end_date">';
+        
+        echo '  <button type="submit" style="background: #2271b1; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Φιλτράρισμα</button>';
+        echo '  <button type="button" id="reset-filter" style="background: #ccc; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Καθαρισμός</button>';
+        
+        echo '</form>';
+
+        //--------Transaction Table--------------------------------
         echo '<h2>Ιστορικό Συναλλαγών</h2>';
         echo '<div class="finance-card">';
 
@@ -546,6 +571,13 @@ class FinancePluginInit{
             'restUrl' => esc_url_raw(rest_url('finance-app/v1')),
             'nonce'   => wp_create_nonce('wp_rest')
         ]);
+
+        wp_enqueue_script('chartjs-lib', 
+            'https://cdn.jsdelivr.net/npm/chart.js', 
+            [], 
+            '4.0.0', 
+            true
+        );
     }
 }
 new FinancePluginInit();
