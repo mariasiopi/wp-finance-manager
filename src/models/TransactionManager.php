@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 class TransactionManager{
-
+    
     private $wpdb;
     private string $table;
     
@@ -38,21 +38,42 @@ class TransactionManager{
     }
     
 
-    public function getAllTransactions(): array{
-    
-            $table_transactions = $this->table; 
-            $table_categories = $this->wpdb->prefix . 'fin_categories';
+    public function getAllTransactions($start_date = '', $end_date = ''): array{
+            global $wpdb;
+            $table_transactions = $wpdb->prefix . 'fin_transactions';
+            $table_categories = $wpdb->prefix . 'fin_categories';
 
-            return $this->wpdb->get_results(
-            "SELECT
+            $sql = "SELECT
                 t.amount,
                 t.description,
                 t.transaction_date,
                 c.name as category_name
-            FROM $table_transactions t
-            LEFT JOIN $table_categories c ON t.category_id = c.id
-            ORDER BY t.transaction_date DESC"
-        );
+                FROM $table_transactions t
+                LEFT JOIN $table_categories c ON t.category_id = c.id
+                WHERE 1=1";
+
+            $params = [];
+
+            if (!empty($start_date)){
+                $sql .= " AND t.transaction_date >= %s";
+                $params[] = $start_date . ' 00:00:00';
+            }
+
+            if (!empty($end_date)){
+                $sql .= " AND t.transaction_date <= %s";
+                $params[] = $end_date . ' 23:59:59';
+            }
+
+            $sql .= " ORDER BY t.transaction_date DESC";
+
+            if (!empty($params)){
+                $prepared_sql = $wpdb->prepare($sql, ...$params);
+                $results = $wpdb->get_results($prepared_sql);
+            } else {
+                $results = $wpdb->get_results($sql);
+            }
+
+            return $results;
     }
     
     public function calculateSpentByCategory(int $categoryId): float{

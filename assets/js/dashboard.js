@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let expensePieChart = null;
     let cashFlowChart = null;
 
+    const filterForm = document.getElementById('finance-filter-form');
+    const resetFilterBtn = document.getElementById('reset-filter');
+
     loadTransactions();
 
     if (t_form) {
@@ -102,8 +105,15 @@ document.addEventListener('DOMContentLoaded', function() {
         })
     }
 
-    function loadTransactions() {
-        fetch(financeData.restUrl + '/transactions', {
+    function loadTransactions(startDate = '', endDate = '') {
+        let url = new URL(financeData.restUrl + '/transactions');
+
+        if (startDate || endDate) {
+            url.searchParams.append('start_date', startDate);
+            url.searchParams.append('end_date', endDate);
+        }
+
+        fetch(url.toString(), {
             method: 'GET',
             headers: {
                 'X-WP-Nonce': financeData.nonce
@@ -222,5 +232,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    }
+
+    if (filterForm){
+        filterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const startDate = document.getElementById('filter-start').value;
+            const endDate = document.getElementById('filter-end').value;
+
+            loadTransactions(startDate, endDate);
+        });
+    }
+
+    if (resetFilterBtn){
+        resetFilterBtn.addEventListener('click', function(e){
+            document.getElementById('filter-start').value = '';
+            document.getElementById('filter-end').value = '';
+
+            loadTransactions();
+        })
     }
 });

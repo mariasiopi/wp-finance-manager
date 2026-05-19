@@ -277,9 +277,12 @@ class FinancePluginInit{
         );
     }
 
-    public function get_api_transactions(): WP_REST_Response{
+    public function get_api_transactions(WP_REST_Request $request): WP_REST_Response{
 
-        $data = $this->transactionManager->getAllTransactions();
+        $start_date = $request->get_param('start_date');
+        $end_date = $request->get_param('end_date');
+
+        $data = $this->transactionManager->getAllTransactions($start_date, $end_date);
         return new WP_REST_Response($data, 200);
     }
 
